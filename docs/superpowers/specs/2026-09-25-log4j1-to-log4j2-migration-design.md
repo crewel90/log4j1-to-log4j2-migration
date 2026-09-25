@@ -48,10 +48,17 @@ D:\Users\YYI5347\.gemini\skills\log4j1-to-log4j2-migration\
 ## 3. Specifiche Tecniche delle Regole di Migrazione
 
 ### 3.1 Dipendenze e Build (Maven / Gradle)
+* **Struttura Multi-Modulo (Maven Parent/Submodules o Gradle Multi-Project):**
+  * **Analisi gerarchica:** Rilevare se il progetto è a singolo modulo o multi-modulo (tag `<modules>` nel POM radice, sezioni `include` in `settings.gradle`).
+  * **Mappatura delle relazioni:** Mappare la gerarchia dei parent `pom.xml`, l'ereditarietà e i vincoli di `<dependencyManagement>`.
+  * **Strategia architetturale per moduli:**
+    * **Root/Parent POM:** Dichiarare `log4j-bom` nel `<dependencyManagement>` e definire le esclusioni globali di Log4j 1 / reload4j.
+    * **Moduli di Business / Librerie (JAR):** Aggiungere solo la dipendenza da `log4j-api` (scope `compile`). Usare `log4j-core` solo in scope `test` se necessario per i test unitari.
+    * **Moduli di Packaging / Runtime (WAR, Spring Boot JAR, EAR, Distribution):** Aggiungere `log4j-core` (scope `runtime` o `compile`) e ospitare il file di configurazione `log4j2.xml`.
 * **BOM:** Obbligo di utilizzo di `org.apache.logging.log4j:log4j-bom` nel `<dependencyManagement>` (o `platform(...)` in Gradle) per garantire la coerenza di versione fra moduli.
 * **Dipendenze dirette:**
   * `org.apache.logging.log4j:log4j-api` (scope `compile`).
-  * `org.apache.logging.log4j:log4j-core` (scope `runtime` per librerie riusabili, `compile` per applicazioni monolitiche/servizi).
+  * `org.apache.logging.log4j:log4j-core` (scope `runtime` per packaging/runtime, `compile` per applicazioni monolitiche).
 * **Esclusioni transitive tassative:**
   * Esclusione globale di `log4j:log4j`, `ch.qos.reload4j:reload4j`, `org.slf4j:slf4j-log4j12` e `org.slf4j:log4j-over-slf4j` per evitare conflitti di binding a runtime.
 * **Facciata SLF4J (quando richiesta):**
@@ -130,12 +137,16 @@ D:\Users\YYI5347\.gemini\skills\log4j1-to-log4j2-migration\
 ## 4. Specifiche del Workflow Operativo della Skill (`SKILL.md`)
 
 La skill `log4j1-to-log4j2-migration` definisce un protocollo a 6 step che l'agente esegue in ordine:
-1. **Audit:** Rileva strumenti di build (`pom.xml`, `build.gradle`), file di configurazione (`log4j.properties`, `log4j.xml`) e classi con import `org.apache.log4j.*`.
-2. **Build Configuration:** Aggiorna `pom.xml` / `build.gradle` inserendo il BOM Log4j 2, `log4j-api`, `log4j-core` ed esclusioni di Log4j 1.
-3. **Config File Migration:** Crea `log4j2.xml` traducendo appenders, loggers e filtri. Rimuove o archivia i vecchi file `log4j.properties`/`log4j.xml`.
-4. **Java Refactoring:** Esegue la sostituzione degli import, factory methods (`LogManager.getLogger`), classi deprecate (`Category`, `Priority`), contesti diagnostici (`ThreadContext`) e parametrizzazione dei messaggi.
+1. **Audit & Project Topology Analysis:**
+   - **Rilevamento struttura di build:** Identificare se il progetto è a singolo modulo o multi-modulo Maven (`<modules>` nel POM radice) / Gradle multi-project (`settings.gradle`).
+   - **Mappatura gerarchia POM:** Ispezionare tutti i `pom.xml` del repository, identificando il Parent POM, la sezione `<dependencyManagement>`, le dipendenze ereditate e le relazioni tra i sottomoduli.
+   - **Classificazione dei moduli:** Distinguere tra moduli libreria/core (richiedono solo `log4j-api`), moduli web/batch/packaging (richiedono `log4j-core` a runtime) e moduli test.
+   - **Rilevamento configurazioni e codice legacy:** Censire file `log4j.properties`/`log4j.xml` (e in quale sottomodulo risiedono), classi con import `org.apache.log4j.*` e componenti custom.
+2. **Build Configuration:** Aggiorna il Parent POM (`<dependencyManagement>` con BOM Log4j 2 ed esclusioni globali) e i singoli sottomoduli (assegnando `log4j-api` e/o `log4j-core` con lo scope corretto).
+3. **Config File Migration:** Crea `log4j2.xml` traducendo appenders, loggers e filtri nel modulo di runtime appropriato. Rimuove o archivia i vecchi file `log4j.properties`/`log4j.xml`.
+4. **Java Refactoring:** Esegue la sostituzione degli import, factory methods (`LogManager.getLogger`), classi deprecate (`Category`, `Priority`), contesti diagnostici (`ThreadContext`) e parametrizzazione dei messaggi attraverso tutti i moduli.
 5. **Custom Component Rewrite:** Identifica componenti che estendono `AppenderSkeleton` e li riscrive come plugin Log4j 2.
-6. **Build & Test Verification:** Lancia la build del progetto (`mvn clean test` o `gradle test`) per verificare l'assenza di errori di compilazione e la corretta emissione dei log.
+6. **Build & Test Verification:** Lancia la build del progetto (`mvn clean test` o `gradle test` sull'intero albero di moduli o sui singoli moduli modificati) per verificare l'assenza di errori di compilazione e la corretta emissione dei log.
 
 ---
 
