@@ -18,21 +18,34 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
    - Metti in pausa e presenta sintesi ed esito allo sviluppatore.
    - Se lo sviluppatore richiede modifiche o segnala errori, itera: correggi, riesegui immediatamente la build e ripresenta.
    - Procedi allo step successivo **solo dopo esplicita approvazione**.
+5. **Git Safety & Protezione dei Branch Principali (`main` / `master`):**
+   - Non lavorare MAI direttamente su `main` o `master`. Crea sempre un branch dedicato (`migration/log4j2`).
+   - Esegui commit atomici ad ogni step validato (Conventional Commits).
+   - È fatto **assoluto divieto di merge o push automatico su `main`/`master`**. L'integrazione avviene tramite Pull Request o, se locale, **solo ed esclusivamente previa esplicita autorizzazione formale dell'utente**.
 
 ---
 
 ## Workflow Operativo a 6 Step
 
+### STEP 0: Inizializzazione Git & Branching
+1. Verifica lo stato con `git status`.
+2. Crea e spostati su un branch dedicato: `git checkout -b migration/log4j2`.
+3. Non toccare file su `main` o `master`.
+
+---
+
 ### STEP 1: Audit & Project Topology Analysis
-1. **Analisi Strutturale del Build System:**
+1. **Attivazione Hook Pre-Commit:**
+   - Installa l'hook nel repository target: `cp .gemini/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit` (o PowerShell: `Copy-Item -Force '.gemini\hooks\pre-commit' '.git\hooks\pre-commit'`).
+2. **Analisi Strutturale del Build System:**
    - Identifica se il progetto è a modulo singolo o multi-modulo Maven (`<modules>` nel POM radice) / Gradle multi-project (`settings.gradle`).
    - Mappa tutti i `pom.xml`, le relazioni parent-child e la sezione `<dependencyManagement>`.
    - *Delega consigliata per progetti estesi:* Invia `@codebase_investigator` per scansionare l'albero e farti restituire un report sintetico di topologia.
-2. **Censimento Risorse:**
+3. **Censimento Risorse:**
    - Esegui lo scanner rapido fornito nel bundle dell'harness (`.gemini/scripts/scan-legacy-log4j.ps1` o `.gemini/scripts/scan-legacy-log4j.sh`, oppure da `~/.gemini/scripts/`).
    - Elenca i file di configurazione (`log4j.properties`, `log4j.xml`).
    - Rileva l'uso di componenti custom (`AppenderSkeleton`, `Layout`, `Filter`).
-3. **Gate Step 1 (Pausa):** Presenta allo sviluppatore:
+4. **Gate Step 1 (Pausa):** Presenta allo sviluppatore:
    - Topologia del progetto (moduli libreria vs moduli packaging).
    - Numero di classi impattate e file di configurazione trovati.
    - Piano di ripartizione delle dipendenze per modulo.
@@ -54,6 +67,8 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
    - Esegui: `mvn dependency:tree -Dincludes=log4j:*,ch.qos.reload4j:*`
    - Esegui: `mvn clean install -DskipTests`
    - *Gate Step 2 (Pausa):* Mostra il diff dei POM e l'esito della build. Raccogli feedback, applica eventuali correzioni rieseguendo la build, e attendi l'ok per procedere.
+   - *Commit Atomico (dopo approvazione):*
+     `git add **/pom.xml && git commit -m "build(deps): migrate dependencies to Log4j 2 BOM and exclude legacy log4j1"`
 
 *Riferimento dettagliato: consulta `references/api-mappings.md`.*
 
@@ -69,6 +84,8 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
    - Imposta `<DefaultRolloverStrategy fileIndex="min"/>` per mantenere l'ordinamento numerico legacy.
    - Rimuovi o archivia i vecchi file `log4j.properties`/`log4j.xml`.
 3. **Gate Step 3 (Pausa):** Presenta il nuovo file `log4j2.xml` allo sviluppatore. Verifica insieme livelli, percorsi dei file e policy di rotazione. Applica eventuali modifiche e attendi l'approvazione.
+   - *Commit Atomico (dopo approvazione):*
+     `git add **/log4j2.xml && git commit -m "chore(logging): convert log4j configuration to canonical log4j2.xml"`
 
 *Riferimento dettagliato: consulta `references/config-converter.md`.*
 
@@ -86,6 +103,8 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
 3. **Verifica & Build Gate:**
    - Esegui: `mvn clean install -DskipTests` (o `mvn test-compile`).
    - *Gate Step 4 (Pausa):* Presenta la sintesi delle classi modificate e l'esito della compilazione. Se emergono errori di compilazione, risolvili, rilancia `mvn clean install` e richiedi conferma allo sviluppatore.
+   - *Commit Atomico (dopo approvazione):*
+     `git add **/*.java && git commit -m "refactor(logging): migrate Java code to native Log4j 2 LogManager and ThreadContext"`
 
 *Riferimento dettagliato: consulta `references/api-mappings.md`.*
 
@@ -102,6 +121,8 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
 3. **Verifica & Build Gate:**
    - Esegui: `mvn clean install`.
    - *Gate Step 5 (Pausa):* Mostra il nuovo codice del plugin e l'esito della compilazione allo sviluppatore. Itera se necessario.
+   - *Commit Atomico (dopo approvazione):*
+     `git add **/*.java && git commit -m "feat(logging): migrate custom appenders to Log4j 2 @Plugin architecture"`
 
 *Riferimento dettagliato: consulta `references/custom-plugins.md`.*
 
@@ -123,6 +144,9 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
      - Verifica la presenza di `log4j2.xml` in `WEB-INF/classes/` o alla radice.
      - Verifica che `log4j-api` e `log4j-core` siano presenti in `WEB-INF/lib/`.
      - Verifica l'assoluta assenza di `log4j-1.2.*.jar` o `reload4j-*.jar`.
-3. **Gate Step 6 (Pausa Finale):** Presenta il report conclusivo allo sviluppatore per la validazione e il commit finale.
+3. **Gate Finale & Integrazione Git (Protezione Assoluta di `main` / `master`):**
+   - **Nessun merge automatico:** È fatto assoluto divieto di merge automatico o push diretto su `main` o `master`.
+   - **Opzione 1 (Consigliata):** Spinta del branch (`git push -u origin migration/log4j2`) e predisposizione del template per la Pull Request per la revisione del team.
+   - **Opzione 2 (Merge Locale):** Solo se espressamente richiesto dallo sviluppatore, l'agente mostra il log dei commit, chiede autorizzazione esplicita ("*Confermi il merge su main?*") ed esegue il merge **solo dopo la conferma affermativa dell'utente**.
 
 *Riferimento dettagliato: consulta `references/pitfalls.md`.*

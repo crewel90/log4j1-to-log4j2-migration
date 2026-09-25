@@ -8,52 +8,71 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
 2. **Eliminazione Totale del Debito Tecnico:** Tutti gli artefatti `log4j:log4j`, `ch.qos.reload4j:reload4j`, `org.slf4j:slf4j-log4j12` e `org.slf4j:log4j-over-slf4j` vengono banditi ed esclusi dal classpath.
 3. **Approccio Multi-Modulo Disciplinato:** Le dipendenze vengono dichiarate centralmente tramite BOM nel Parent POM. La libreria di interfaccia (`log4j-api`) è confinata nei moduli di business logic, mentre il motore runtime (`log4j-core`) e la configurazione risiedono esclusivamente nei moduli di packaging/runtime (WAR, Spring Boot Fat JAR, EAR).
 4. **Human-in-the-Loop & Build Gate:** Ogni fase della migrazione si conclude con una verifica formale di build (`mvn clean install`) e con la revisione/approvazione esplicita dello sviluppatore. In caso di osservazioni o errori, si itera finché la build non è verde e lo sviluppatore soddisfatto.
+5. **Git Safety & Protezione dei Branch Principali (`main` / `master`):** Nessuna modifica viene apportata direttamente su `main` o `master`. Si opera esclusivamente su branch dedicati (`migration/log4j2`). È fatto assoluto divieto di merge automatico verso i branch protetti: l'integrazione richiede obbligatoriamente Pull Request oppure esplicita autorizzazione formale per il merge locale.
 
 ---
 
-## 2. Diagramma del Ciclo di Lavoro a 6 Step
+## 2. Diagramma del Ciclo di Lavoro
 
 ```text
-[Step 1: Audit & Topologia Multi-Modulo]
+[Step 0: Branching Git dedicato (migration/log4j2)]
+                   ↓
+[Step 1: Audit, Topologia & Installazione Pre-commit Hook]
                    ↓
         [Revisione Sviluppatore]
                    ↓
-[Step 2: Aggiornamento POM & Build System] → [Build: mvn clean install -DskipTests]
+[Step 2: Aggiornamento POM] → [Build: mvn clean install -DskipTests] → [Commit: build(deps)...]
                    ↓
         [Revisione Sviluppatore]
                    ↓
-[Step 3: Migrazione File Configurazione]   → [Creazione log4j2.xml]
+[Step 3: Migrazione Config]  → [Creazione log4j2.xml]               → [Commit: chore(logging)...]
                    ↓
         [Revisione Sviluppatore]
                    ↓
-[Step 4: Refactoring Java & Parametrizzazione] → [Build: mvn clean install]
+[Step 4: Refactoring Java]   → [Build: mvn clean install]            → [Commit: refactor(logging)...]
                    ↓
    [Se presenti componenti custom]
-[Step 5: Riscrittura Plugin Custom (@Plugin)] → [Build: mvn clean install]
+[Step 5: Riscrittura Plugin] → [Build: mvn clean install]            → [Commit: feat(logging)...]
                    ↓
         [Revisione Sviluppatore]
                    ↓
-[Step 6: Packaging & Verifica Finale]      → [mvn clean install + mvn clean package]
+[Step 6: Packaging & Verifica Finale] → [mvn clean install + mvn clean package]
+                   ↓
+[Gate Integrazione Git: Pull Request (consigliata) OPPURE Merge Locale SOLO PREVIA APPROVAZIONE ESPLICITA]
 ```
 
 ---
 
 ## 3. Guida Dettagliata agli Step Operativi
 
+### STEP 0: Inizializzazione Git & Branching
+**Obiettivo:** Isolare le modifiche e proteggere `main`/`master`.
+1. Verificare che l'albero sia pulito con `git status`.
+2. Creare un branch dedicato: `git checkout -b migration/log4j2`.
+3. **Divieto assoluto di lavorare direttamente sui branch di produzione (`main` / `master`).**
+
+---
+
 ### STEP 1: Audit & Topologia del Progetto
-**Obiettivo:** Mappare la struttura dei moduli, le dipendenze e i punti di impatto senza apportare modifiche distruttive.
-1. **Analisi Strutturale:**
+**Obiettivo:** Mappare la struttura dei moduli, le dipendenze e attivare le protezioni locali.
+1. **Installazione Hook Pre-Commit:**
+   Copiare l'hook dell'harness nel repository target per impedire nuovi import legacy:
+   ```bash
+   cp .gemini/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+   ```
+2. **Analisi Strutturale:**
    - Verificare se il progetto è a singolo modulo o multi-modulo (tag `<modules>` nel POM radice).
    - Identificare la catena di ereditarietà tra i vari `pom.xml` e la sezione `<dependencyManagement>`.
-2. **Classificazione dei Moduli:**
+3. **Classificazione dei Moduli:**
    - **Parent / Root POM:** Dove dichiarare il BOM e le esclusioni globali.
    - **Moduli Business / Librerie (JAR):** Richiedono unicamente `log4j-api`.
    - **Moduli Packaging / Web (WAR, Spring Boot JAR, EAR):** Richiedono `log4j-core` e conterranno `log4j2.xml`.
-3. **Censimento Sorgenti & Config:**
+4. **Censimento Sorgenti & Config:**
+   - Eseguire lo scanner rapido: `powershell -File .gemini/scripts/scan-legacy-log4j.ps1` (o `./.gemini/scripts/scan-legacy-log4j.sh`).
    - Localizzare file `log4j.properties` e `log4j.xml` (`src/main/resources`, cartelle di deploy).
    - Contare le classi Java con import `org.apache.log4j.*`.
    - Individuare estensioni di `AppenderSkeleton`, `Layout`, o `Filter`.
-4. **Gate di Revisione:** Presentare allo sviluppatore il report di audit e la strategia per modulo. Attendere approvazione.
+5. **Gate di Revisione:** Presentare allo sviluppatore il report di audit e la strategia per modulo. Attendere approvazione.
 
 ---
 
@@ -93,6 +112,8 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
    - Eseguire: `mvn dependency:tree -Dincludes=log4j:*,ch.qos.reload4j:*`
    - Eseguire: `mvn clean install -DskipTests`
    - *Pausa e Revisione:* Presentare il diff dei POM allo sviluppatore. Se richiesto, applicare correzioni e rieseguire la build.
+   - *Commit Atomico:* Solo dopo approvazione formale:
+     `git add **/pom.xml && git commit -m "build(deps): migrate dependencies to Log4j 2 BOM and exclude legacy log4j1"`
 
 ---
 
@@ -132,7 +153,10 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
    - Usare sempre `${sys:property}` per le variabili passate con `-D` (in Log4j 1 bastava `${property}`).
    - Impostare `<DefaultRolloverStrategy fileIndex="min"/>` per mantenere l'indicizzazione legacy.
    - Eliminare o rinominare i vecchi `log4j.properties` o `log4j.xml` per evitare ambiguità.
-4. **Verifica & Gate:** Presentare il file `log4j2.xml` allo sviluppatore. Raccogliere feedback (livelli, rotazione) e reiterare prima di proseguire.
+4. **Verifica & Gate:**
+   - Presentare il file `log4j2.xml` allo sviluppatore. Raccogliere feedback (livelli, rotazione) e reiterare.
+   - *Commit Atomico:* Solo dopo approvazione formale:
+     `git add **/log4j2.xml && git commit -m "chore(logging): convert log4j configuration to canonical log4j2.xml"`
 
 ---
 
@@ -173,13 +197,15 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
 4. **Rimozione Shutdown:** Rimuovere qualsiasi invocazione di `LogManager.shutdown()`.
 5. **Verifica & Build Gate:**
    - Eseguire: `mvn clean install -DskipTests` (verifica compilazione su tutti i moduli).
-   - Pausa e revisione con lo sviluppatore. In caso di errori di compilazione, intervenire chirurgicamente, rieseguire `mvn clean install` e ripresentare.
+   - Pausa e revisione con lo sviluppatore. In caso di errori, applicare fix, rieseguire la build e ripresentare.
+   - *Commit Atomico:* Solo dopo approvazione formale:
+     `git add **/*.java && git commit -m "refactor(logging): migrate Java code to native Log4j 2 LogManager and ThreadContext"`
 
 ---
 
 ### STEP 5: Riscrittura dei Componenti Custom (Appenders / Layout)
 **Obiettivo:** Convertire eventuali componenti custom legacy nel sistema `@Plugin` di Log4j 2.
-1. **Valutazione:** Verificare se il componente legacy (es. formattazione JSON o rotazione particolare) non sia già fornito out-of-the-box da Log4j 2.
+1. **Valutazione:** Verificare se il componente legacy non sia già fornito out-of-the-box da Log4j 2.
 2. **Implementazione Plugin Log4j 2:**
    - Estendere `AbstractAppender`.
    - Utilizzare le annotazioni `@Plugin` e implementare una classe interna statica `Builder` con `@PluginBuilderFactory`.
@@ -187,6 +213,8 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
 3. **Verifica & Build Gate:**
    - Eseguire: `mvn clean install`.
    - Pausa e revisione del componente con lo sviluppatore.
+   - *Commit Atomico:* Solo dopo approvazione formale:
+     `git add **/*.java && git commit -m "feat(logging): migrate custom appenders to Log4j 2 @Plugin architecture"`
 
 ---
 
@@ -203,6 +231,9 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
    ```
    Ispezionare gli artefatti prodotti (es. `target/*.war`, `target/*.jar`):
    - Verificare la presenza di `log4j2.xml` nella directory radice o in `WEB-INF/classes/`.
-   - Verificare la presenza di `log4j-api-*.jar` e `log4j-core-*.jar` in `WEB-INF/lib/` (o nel fat jar).
+   - Verificare la presenza di `log4j-api-*.jar` e `log4j-core-*.jar` in `WEB-INF/lib/`.
    - Confermare l'assoluta assenza di `log4j-1.2.*.jar` o `reload4j-*.jar`.
-3. **Gate Finale:** Presentare il riepilogo conclusivo di migrazione allo sviluppatore per la chiusura dell'attività.
+3. **Gate Finale & Integrazione Git (Protezione Assoluta di `main` / `master`):**
+   - **Nessun merge automatico:** È fatto assoluto divieto di merge o push diretto non autorizzato su `main`/`master`.
+   - **Opzione 1 (Consigliata):** Push del branch `git push -u origin migration/log4j2` e apertura della Pull Request per la code review del team.
+   - **Opzione 2 (Merge Locale):** Solo se espressamente richiesto dallo sviluppatore, l'agente mostra i commit, chiede conferma esplicita e solo dopo autorizzazione esegue `git checkout main && git merge --no-ff migration/log4j2`.

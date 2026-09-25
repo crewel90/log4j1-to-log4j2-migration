@@ -22,6 +22,7 @@ Il dossier tecnico si articola nei seguenti documenti:
    * **[04. Riscrivere Componenti Custom](docs/references/04-custom-components.md)**: Guida alla conversione di `AppenderSkeleton`, Layout e Filtri proprietari nel pattern moderno `@Plugin` di Log4j 2 con Builder.
    * **[05. Automazione con OpenRewrite](docs/references/05-openrewrite-recipes.md)**: Esecuzione delle ricette OpenRewrite per il refactoring automatico massivo su grandi codebase.
    * **[06. Risoluzione Errori & Edge Cases](docs/references/06-pitfalls-and-edge-cases.md)**: Risoluzione di conflitti di classpath, rimozione di `LogManager.shutdown()`, configurazione programmatica e diagnostica.
+   * **[07. Gestione Git, Sicurezza & Protezione Branch](docs/references/07-git-workflow-and-safety.md)**: Branching strategy, commit atomici per step, installazione hook pre-commit e protezione assoluta di `main`/`master` con approvazione obbligatoria.
 
 ---
 

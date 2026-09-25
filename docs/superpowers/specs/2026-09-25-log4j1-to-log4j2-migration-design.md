@@ -139,7 +139,27 @@ D:\Users\YYI5347\.gemini\skills\log4j1-to-log4j2-migration\
 ### 4.1 Protocollo Obbligatorio ad Ogni Step (Gate di Revisione & Loop Iterativo)
 La skill opera secondo un principio rigoroso di **Human-in-the-loop**: ogni step del workflow non può considerarsi concluso né può procedere allo step successivo senza una verifica esplicita dello sviluppatore e il superamento della build.
 
-Per ciascuno dei 6 step:
+#### Regole di Gestione Git & Protezione Branch:
+1. **Branch di Migrazione Dedicato (Obbligatorio):**
+   - Prima di iniziare a modificare codice o file `pom.xml`, l'agente verifica la pulizia dell'albero di lavoro (`git status`).
+   - L'agente crea e si sposta su un branch dedicato (es. `git checkout -b migration/log4j2` o `feature/log4j2-migration`).
+   - **Divieto assoluto di lavorare direttamente sui branch protetti (`main` o `master`).**
+2. **Attivazione Hook Pre-Commit:**
+   - Durante lo Step 1, l'agente installa l'hook `.gemini/hooks/pre-commit` in `.git/hooks/pre-commit` del progetto target per impedire il reinserimento di import `org.apache.log4j.*`.
+3. **Commit Atomici per Step Approvato:**
+   - Al superamento di ciascun gate con build verde, l'agente esegue un commit atomico seguendo lo standard *Conventional Commits*:
+     - *Step 2:* `build(deps): migrate dependencies to Log4j 2 BOM and exclude legacy log4j1`
+     - *Step 3:* `chore(logging): convert log4j configuration to log4j2.xml`
+     - *Step 4:* `refactor(logging): migrate Java code to native Log4j 2 LogManager and ThreadContext`
+     - *Step 5:* `feat(logging): migrate custom appenders to Log4j 2 @Plugin architecture`
+4. **Rollback Deterministico:**
+   - Se durante un'iterazione la build fallisce o lo sviluppatore chiede di ripristinare le modifiche non consolidate, l'agente esegue `git restore .` e `git clean -fd` per tornare in sicurezza all'ultimo commit verde validato.
+5. **Protezione Assoluta di `main` / `master` e Gate di Integrazione:**
+   - **Nessun merge automatico:** L'agente non esegue MAI autonomamente il merge su `main` o `master` né effettua push diretti sui branch protetti.
+   - **Opzione Pull Request (Consigliata):** Nello Step 6 l'agente propone il push del branch (`git push -u origin <branch>`) e predispone la descrizione per la Pull Request, demandando l'integrazione alla code review del team.
+   - **Opzione Merge Locale (Sotto Autorizzazione Esplicita):** Se lo sviluppatore richiede il merge locale, l'agente deve mostrare l'esito finale della build, il log dei commit e **chiedere esplicita conferma formale**. Il merge su `main`/`master` viene eseguito **solo ed esclusivamente dopo la risposta affermativa dell'utente**.
+
+#### Ciclo Esecutivo per Ciascun Step:
 1. **Esecuzione Modifiche:** L'agente applica le modifiche mirate previste per lo step.
 2. **Build di Verifica Automatica:** L'agente lancia `mvn clean install` (o compilazione mirata del modulo coinvolto) per verificare che non vi siano rotture sintattiche o di compilazione.
 3. **Pausa e Presentazione al Developer (Gate di Revisione):** L'agente mette in pausa il flusso e presenta allo sviluppatore:
@@ -153,7 +173,7 @@ Per ciascuno dei 6 step:
      - Riesegue immediatamente `mvn clean install` per verificare che la build ritorni/resti verde.
      - Ripresenta il risultato aggiornato e si rimette in pausa.
    - Il ciclo itera finché lo sviluppatore non dichiara esplicitamente approvato lo step.
-5. **Transizione allo Step Successivo:** Solo dopo l'approvazione formale dello sviluppatore per lo step corrente, l'agente sblocca il passaggio allo step successivo.
+5. **Commit & Transizione allo Step Successivo:** Solo dopo l'approvazione formale dello sviluppatore per lo step corrente, l'agente effettua il commit atomico e sblocca il passaggio allo step successivo.
 
 ### 4.2 I 6 Step Operativi
 1. **Step 1 - Audit & Project Topology Analysis:**
