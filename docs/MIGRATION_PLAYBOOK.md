@@ -49,11 +49,35 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
 
 ## 3. Guida Dettagliata agli Step Operativi
 
-### STEP 0: Inizializzazione Git & Branching
-**Obiettivo:** Isolare le modifiche e proteggere `main`/`master`.
-1. Verificare che l'albero sia pulito con `git status`.
-2. Creare un branch dedicato: `git checkout -b migration/log4j2`.
-3. **Divieto assoluto di lavorare direttamente sui branch di produzione (`main` / `master`).**
+### STEP 0: Setup Ambiente (JDK / Maven) & Inizializzazione Git
+**Obiettivo:** Validare che gli strumenti di compilazione siano allineati ai requisiti del progetto e predisporre un branch di migrazione isolato partendo dal branch di sviluppo corretto.
+
+#### 1. Verifica e Configurazione dell'Ambiente (JDK e Maven):
+1. **Domande Iniziali:** L'agente chiede allo sviluppatore quale versione di JDK (es. Java 8, 11, 17, 21) e quale versione di Maven (es. 3.6.x, 3.8.x, 3.9.x) siano richieste dall'applicativo.
+2. **Verifica Automatica:**
+   ```bash
+   java -version
+   mvn -version
+   ```
+3. **Opzione Configurazione Autonoma:** Se la versione attiva nel terminale non coincide (es. l'host usa Java 17 di default ma il progetto è su Java 8 legacy), l'agente offre allo sviluppatore la possibilità di configurare l'ambiente in autonomia (tramite script locali, variabili d'ambiente di sessione o SDKMAN).
+4. **Validazione di Ripresa:** Quando lo sviluppatore segnala di aver impostato l'ambiente, l'agente riesegue `java -version` e `mvn -version` per confermare che i prerequisiti siano pienamente soddisfatti prima di toccare qualsiasi file.
+
+#### 2. Inizializzazione Git & Scelta del Branch:
+* **Scenario A (Progetto NON Versionato - nessuna cartella `.git`):**
+  1. Chiedere conferma allo sviluppatore per inizializzare il repository: `git init`.
+  2. Eseguire un commit di baseline per congelare lo stato iniziale:
+     `git add . && git commit -m "chore: initial baseline commit before log4j2 migration"`
+  3. Chiedere allo sviluppatore il nome desiderato per il branch di migrazione (es. suggerendo `migration/log4j2`).
+  4. Creare e posizionarsi sul nuovo branch: `git checkout -b <nome-scelto>`.
+* **Scenario B (Progetto Già Versionato):**
+  1. Verificare con `git status` che il working tree sia pulito (nessuna modifica pendente).
+  2. Riconoscere il branch corrente. **Regola fondamentale sui branch:**
+     - I branch `main`, `master`, `collaudo`, `test`, `prod` **non sono branch di sviluppo**.
+     - I branch di sviluppo adottano nomenclature standard: `sviluppo`, `svil`, `svl`, `dev`, `develop`.
+  3. Se ci si trova su un branch protetto o di rilascio (es. `collaudo` o `main`), l'agente avvisa lo sviluppatore e chiede di effettuare il checkout del branch di sviluppo appropriato.
+  4. Chiedere allo sviluppatore: *"Quale nome vuoi assegnare al nuovo branch dedicato alla migrazione Log4j 2?"* (suggerendo `migration/log4j2`).
+  5. Creare e posizionarsi sul nuovo branch: `git checkout -b <nome-scelto>`.
+  6. **Divieto assoluto di lavorare direttamente sui branch protetti (`main`, `master`, `collaudo`).**
 
 ---
 

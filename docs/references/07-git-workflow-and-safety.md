@@ -6,22 +6,47 @@ Questa guida definisce il protocollo formale di gestione Git che l'agente AI e l
 
 ## 1. Branching Strategy & Pre-Requisito (Step 0)
 
-È tassativamente vietato effettuare modifiche direttamente sui branch principali (`main` o `master`).
+È tassativamente vietato effettuare modifiche direttamente sui branch protetti o di rilascio (`main`, `master`, `collaudo`, `test`, `prod`).
 
-### Inizializzazione del Branch di Migrazione
-Prima di toccare qualsiasi riga di codice o file `pom.xml`:
-```bash
-# 1. Verifica che non vi siano modifiche non committate in corso
-git status
+### 1.1 Riconoscimento dei Branch di Sviluppo
+Nelle organizzazioni enterprise e nei flussi di sviluppo software:
+* **Branch NON di sviluppo (PROTETTI / RILASCIO):** `main`, `master`, `collaudo`, `test`, `release`, `prod`. Da questi branch **non** si deve sviluppare direttamente la migrazione.
+* **Branch di sviluppo standard:** `sviluppo`, `svil`, `svl`, `dev`, `develop`.
 
-# 2. Allineamento con il branch remoto
-git checkout main
-git pull origin main
+L'agente deve verificare il branch corrente e, se rileva che ci si trova su `main`, `master` o `collaudo`, deve avvertire lo sviluppatore e richiedere il checkout del branch di sviluppo effettivo.
 
-# 3. Creazione e switch sul branch di migrazione dedicato
-git checkout -b migration/log4j2
-```
-*Convenzioni di naming del branch:* `migration/log4j2`, `feature/log4j2-native-migration`.
+---
+
+### 1.2 Scenario A: Progetto NON Versionato (Nessuna cartella `.git`)
+Se il progetto non è sotto controllo di versione:
+1. L'agente chiede autorizzazione ad inizializzare il repository: `git init`.
+2. Effettua un commit di baseline per congelare lo stato iniziale pre-migrazione:
+   ```bash
+   git add .
+   git commit -m "chore: initial baseline commit before log4j2 migration"
+   ```
+3. Chiede allo sviluppatore il nome desiderato per il branch di migrazione (es. `migration/log4j2` o nome a scelta).
+4. Crea e si sposta sul nuovo branch:
+   ```bash
+   git checkout -b <nome-scelto-dallo-sviluppatore>
+   ```
+
+---
+
+### 1.3 Scenario B: Progetto Già Versionato
+Se il progetto è già un repository Git:
+1. **Verifica Working Tree:** Accertare con `git status` che l'albero di lavoro sia completamente pulito (nessun file modified o untracked non salvato).
+2. **Controllo Branch di Sviluppo:** Rilevare il branch corrente. Se non corrisponde a un branch di sviluppo (es. `sviluppo`, `svil`, `svl`, `dev`), chiedere allo sviluppatore il nome del branch di sviluppo e posizionarsi su di esso:
+   ```bash
+   git checkout sviluppo
+   git pull origin sviluppo
+   ```
+3. **Richiesta Nome Branch:** Chiedere allo sviluppatore:
+   *"Quale nome desideri assegnare al nuovo branch dedicato alla migrazione Log4j 2?"* (suggerendo `migration/log4j2`).
+4. **Creazione Branch di Migrazione:**
+   ```bash
+   git checkout -b <nome-scelto-dallo-sviluppatore>
+   ```
 
 ---
 

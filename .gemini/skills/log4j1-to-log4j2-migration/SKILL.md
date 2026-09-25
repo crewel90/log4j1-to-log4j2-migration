@@ -25,12 +25,30 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
 
 ---
 
-## Workflow Operativo a 6 Step
+## Workflow Operativo Completo
 
-### STEP 0: Inizializzazione Git & Branching
-1. Verifica lo stato con `git status`.
-2. Crea e spostati su un branch dedicato: `git checkout -b migration/log4j2`.
-3. Non toccare file su `main` o `master`.
+### STEP 0: Setup Ambiente (JDK / Maven) & Inizializzazione Git
+1. **Verifica JDK e Maven:**
+   - Chiedi allo sviluppatore quale versione di JDK e Maven siano richieste per l'applicativo.
+   - Esegui la verifica con:
+     ```bash
+     java -version
+     mvn -version
+     ```
+   - **Opzione Configurazione Autonoma:** Se la versione attiva non corrisponde o servono script locali/SDKMAN, lascia che lo sviluppatore configuri l'ambiente in autonomia nel terminale. Alla ripresa, riesegui `java -version` e `mvn -version` per confermare che l'ambiente sia pronto.
+2. **Inizializzazione e Scelta del Branch:**
+   - **Se il progetto non è versionato (nessun `.git`):**
+     1. Chiedi conferma per `git init`.
+     2. Esegui il commit di baseline: `git add . && git commit -m "chore: initial baseline commit before log4j2 migration"`.
+     3. Chiedi il nome desiderato per il branch di migrazione (es. suggerendo `migration/log4j2`).
+     4. Crea e spostati sul branch: `git checkout -b <nome-scelto>`.
+   - **Se il progetto è già versionato:**
+     1. Verifica con `git status` che il working tree sia pulito.
+     2. Riconosci il branch corrente. **Ricorda:** `main`, `master`, `collaudo`, `test`, `prod` **NON sono branch di sviluppo**. I branch di sviluppo usano convenzioni come `sviluppo`, `svil`, `svl`, `dev`, `develop`.
+     3. Se ci si trova su un branch non di sviluppo (es. `collaudo` o `main`), avvisa l'utente e chiedi di effettuare il checkout del branch di sviluppo effettivo.
+     4. Chiedi allo sviluppatore quale nome assegnare al nuovo branch (es. suggerendo `migration/log4j2` o recependone uno custom).
+     5. Crea e posizionati sul branch: `git checkout -b <nome-scelto>`.
+     6. **Divieto assoluto di lavorare direttamente sui branch protetti (`main`, `master`, `collaudo`).**
 
 ---
 
