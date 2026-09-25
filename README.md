@@ -25,9 +25,9 @@ Il dossier tecnico si articola nei seguenti documenti:
 
 ---
 
-## 🛠️ Tooling & Script di Supporto (`scripts/`)
+## 🛠️ Tooling, Script & Hooks nel Bundle della Skill
 
-Nella cartella `scripts/` sono forniti strumenti di automazione locale:
+Tutti gli strumenti operativi dell'Agent Harness risiedono direttamente all'interno della Skill (`.gemini/skills/log4j1-to-log4j2-migration/`):
 * **`scripts/scan-legacy-log4j.ps1` / `.sh`**: Scansione istantanea della codebase per censire POM, file di configurazione, classi legacy e appender custom.
 * **`scripts/convert-log4j1-config.sh`**: Wrapper per l'utility ufficiale di conversione Apache.
 * **`hooks/pre-commit`**: Git hook opzionale per impedire il reinserimento di import `org.apache.log4j.*`.
@@ -47,7 +47,7 @@ cd migration_Log4J2
 npm install
 ```
 
-Lo script `postinstall` copierà automaticamente `SKILL.md` e tutti i file di `references/` nella directory globale delle skill di Gemini CLI (`~/.gemini/skills/log4j1-to-log4j2-migration/`), rendendo immediatamente disponibile la skill all'agente.
+Lo script `postinstall` copierà automaticamente `SKILL.md`, la directory `references/`, `scripts/` e `hooks/` nella directory globale delle skill di Gemini CLI (`~/.gemini/skills/log4j1-to-log4j2-migration/`), rendendo immediatamente disponibile la skill all'agente in qualsiasi progetto Java sul PC del collega.
 
 Se desideri disinstallare la skill in un secondo momento:
 ```bash
@@ -56,17 +56,23 @@ npm run uninstall-skill
 
 ---
 
-## 🤖 Skill Gemini CLI (`log4j1-to-log4j2-migration`)
+## 🤖 Struttura della Skill Gemini CLI (`log4j1-to-log4j2-migration`)
 
-È inclusa e installabile la Skill globale per l'agente AI Gemini CLI situata in:
+La Skill è completamente autoconsistente:
 ```text
 ~/.gemini/skills/log4j1-to-log4j2-migration/
 ├── SKILL.md
-└── references/
-    ├── api-mappings.md
-    ├── config-converter.md
-    ├── custom-plugins.md
-    └── pitfalls.md
+├── references/
+│   ├── api-mappings.md
+│   ├── config-converter.md
+│   ├── custom-plugins.md
+│   └── pitfalls.md
+├── scripts/
+│   ├── scan-legacy-log4j.ps1
+│   ├── scan-legacy-log4j.sh
+│   └── convert-log4j1-config.sh
+└── hooks/
+    └── pre-commit
 ```
 
 ### Come Usare la Skill nell'Agente
