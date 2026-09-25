@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#
+# Git pre-commit hook per prevenire l'introduzione di codice legacy Log4j 1.x
+# Per attivare: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+
+echo "🔍 Controllo pre-commit: scansione import legacy Log4j 1.x..."
+
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.java$')
+
+if [ -z "$STAGED_JAVA_FILES" ]; then
+    exit 0
+fi
+
+ERRORS_FOUND=0
+
+for file in $STAGED_JAVA_FILES; do
+    # Verifica se nei diff aggiunti (+) c'è un import org.apache.log4j
+    if git diff --cached "$file" | grep -E "^\+\s*import\s+org\.apache\.log4j\." > /dev/null; then
+        echo "❌ ERRORE in $file:"
+        echo "   È stato rilevato un import verso il package legacy 'org.apache.log4j.*'."
+        echo "   Usa invece 'org.apache.logging.log4j.*' per preservare la migrazione nativa a Log4j 2."
+        ERRORS_FOUND=1
+    fi
+done
+
+if [ $ERRORS_FOUND -ne 0 ]; then
+    echo ""
+    echo "🚫 Commit bloccato per prevenire regressioni di migrazione."
+    echo "   Se necessario bypassare questo controllo temporaneamente, usa: git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Nessun import legacy Log4j 1.x rilevato nei file in staging."
+exit 0
