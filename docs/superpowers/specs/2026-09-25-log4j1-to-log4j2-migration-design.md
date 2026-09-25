@@ -146,7 +146,9 @@ La skill `log4j1-to-log4j2-migration` definisce un protocollo a 6 step che l'age
 3. **Config File Migration:** Crea `log4j2.xml` traducendo appenders, loggers e filtri nel modulo di runtime appropriato. Rimuove o archivia i vecchi file `log4j.properties`/`log4j.xml`.
 4. **Java Refactoring:** Esegue la sostituzione degli import, factory methods (`LogManager.getLogger`), classi deprecate (`Category`, `Priority`), contesti diagnostici (`ThreadContext`) e parametrizzazione dei messaggi attraverso tutti i moduli.
 5. **Custom Component Rewrite:** Identifica componenti che estendono `AppenderSkeleton` e li riscrive come plugin Log4j 2.
-6. **Build & Test Verification:** Lancia la build del progetto (`mvn clean test` o `gradle test` sull'intero albero di moduli o sui singoli moduli modificati) per verificare l'assenza di errori di compilazione e la corretta emissione dei log.
+6. **Build & Packaging Verification:**
+   - Eseguire la build completa con `mvn clean install` per compilare tutti i moduli, eseguire i test di regressione e installare gli artefatti nel repository locale (fondamentale nei progetti multi-modulo per risolvere le dipendenze inter-modulo).
+   - Eseguire `mvn clean package` per generare i pacchetti finali deployabili (JAR/WAR/EAR) e verificare l'inclusione corretta di `log4j2.xml` e delle librerie di runtime nei pacchetti finali.
 
 ---
 
