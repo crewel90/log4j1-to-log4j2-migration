@@ -136,19 +136,51 @@ D:\Users\YYI5347\.gemini\skills\log4j1-to-log4j2-migration\
 
 ## 4. Specifiche del Workflow Operativo della Skill (`SKILL.md`)
 
-La skill `log4j1-to-log4j2-migration` definisce un protocollo a 6 step che l'agente esegue in ordine:
-1. **Audit & Project Topology Analysis:**
+### 4.1 Protocollo Obbligatorio ad Ogni Step (Gate di Revisione & Loop Iterativo)
+La skill opera secondo un principio rigoroso di **Human-in-the-loop**: ogni step del workflow non può considerarsi concluso né può procedere allo step successivo senza una verifica esplicita dello sviluppatore e il superamento della build.
+
+Per ciascuno dei 6 step:
+1. **Esecuzione Modifiche:** L'agente applica le modifiche mirate previste per lo step.
+2. **Build di Verifica Automatica:** L'agente lancia `mvn clean install` (o compilazione mirata del modulo coinvolto) per verificare che non vi siano rotture sintattiche o di compilazione.
+3. **Pausa e Presentazione al Developer (Gate di Revisione):** L'agente mette in pausa il flusso e presenta allo sviluppatore:
+   - Sintesi dei file modificati e delle scelte applicate.
+   - Esito della build di verifica.
+   - Richiesta esplicita di revisione.
+4. **Loop di Feedback & Correzione:**
+   - Se lo sviluppatore esprime dubbi, evidenzia errori o richiede modifiche esplicite ("non rispetta le mie esigenze, modifica X in Y"):
+     - L'agente recepisce il feedback testuale dello sviluppatore.
+     - Applica le correzioni richieste alla codebase.
+     - Riesegue immediatamente `mvn clean install` per verificare che la build ritorni/resti verde.
+     - Ripresenta il risultato aggiornato e si rimette in pausa.
+   - Il ciclo itera finché lo sviluppatore non dichiara esplicitamente approvato lo step.
+5. **Transizione allo Step Successivo:** Solo dopo l'approvazione formale dello sviluppatore per lo step corrente, l'agente sblocca il passaggio allo step successivo.
+
+### 4.2 I 6 Step Operativi
+1. **Step 1 - Audit & Project Topology Analysis:**
    - **Rilevamento struttura di build:** Identificare se il progetto è a singolo modulo o multi-modulo Maven (`<modules>` nel POM radice) / Gradle multi-project (`settings.gradle`).
    - **Mappatura gerarchia POM:** Ispezionare tutti i `pom.xml` del repository, identificando il Parent POM, la sezione `<dependencyManagement>`, le dipendenze ereditate e le relazioni tra i sottomoduli.
    - **Classificazione dei moduli:** Distinguere tra moduli libreria/core (richiedono solo `log4j-api`), moduli web/batch/packaging (richiedono `log4j-core` a runtime) e moduli test.
    - **Rilevamento configurazioni e codice legacy:** Censire file `log4j.properties`/`log4j.xml` (e in quale sottomodulo risiedono), classi con import `org.apache.log4j.*` e componenti custom.
-2. **Build Configuration:** Aggiorna il Parent POM (`<dependencyManagement>` con BOM Log4j 2 ed esclusioni globali) e i singoli sottomoduli (assegnando `log4j-api` e/o `log4j-core` con lo scope corretto).
-3. **Config File Migration:** Crea `log4j2.xml` traducendo appenders, loggers e filtri nel modulo di runtime appropriato. Rimuove o archivia i vecchi file `log4j.properties`/`log4j.xml`.
-4. **Java Refactoring:** Esegue la sostituzione degli import, factory methods (`LogManager.getLogger`), classi deprecate (`Category`, `Priority`), contesti diagnostici (`ThreadContext`) e parametrizzazione dei messaggi attraverso tutti i moduli.
-5. **Custom Component Rewrite:** Identifica componenti che estendono `AppenderSkeleton` e li riscrive come plugin Log4j 2.
-6. **Build & Packaging Verification:**
-   - Eseguire la build completa con `mvn clean install` per compilare tutti i moduli, eseguire i test di regressione e installare gli artefatti nel repository locale (fondamentale nei progetti multi-modulo per risolvere le dipendenze inter-modulo).
-   - Eseguire `mvn clean package` per generare i pacchetti finali deployabili (JAR/WAR/EAR) e verificare l'inclusione corretta di `log4j2.xml` e delle librerie di runtime nei pacchetti finali.
+   - *Gate Step 1:* Presentazione della topologia rilevata e della strategia di migrazione pianificata; attesa approvazione/aggiustamenti dello sviluppatore.
+2. **Step 2 - Build Configuration:**
+   - Aggiorna il Parent POM (`<dependencyManagement>` con BOM Log4j 2 ed esclusioni globali) e i singoli sottomoduli (assegnando `log4j-api` e/o `log4j-core` con lo scope corretto).
+   - Esecuzione `mvn clean install -DskipTests` (o compilazione POM).
+   - *Gate Step 2:* Presentazione modifiche ai POM, esito build, pausa per revisione/iterazione ed eventuale build correttiva.
+3. **Step 3 - Config File Migration:**
+   - Crea `log4j2.xml` traducendo appenders, loggers e filtri nel modulo di runtime appropriato. Rimuove o archivia i vecchi file `log4j.properties`/`log4j.xml`.
+   - *Gate Step 3:* Presentazione del nuovo `log4j2.xml`, pausa per revisione parametri (rolling policy, log level, layout), iterazione ed eventuale build di verifica.
+4. **Step 4 - Java Refactoring:**
+   - Esegue la sostituzione degli import, factory methods (`LogManager.getLogger`), classi deprecate (`Category`, `Priority`), contesti diagnostici (`ThreadContext`) e parametrizzazione dei messaggi attraverso tutti i moduli.
+   - Esecuzione `mvn clean install` per verificare la compilazione Java e l'assenza di riferimenti a vecchi package.
+   - *Gate Step 4:* Presentazione dei refactoring eseguiti, esito compilazione, pausa per revisione/iterazione ed eventuale build correttiva.
+5. **Step 5 - Custom Component Rewrite:**
+   - Identifica componenti che estendono `AppenderSkeleton` o `Layout` e li riscrive come plugin Log4j 2 con relative annotazioni `@Plugin`.
+   - Esecuzione `mvn clean install` per validare il packaging dei plugin Log4j 2.
+   - *Gate Step 5:* Presentazione del codice del plugin migrato, pausa per revisione/iterazione ed eventuale build correttiva.
+6. **Step 6 - Build, Packaging & Final Verification:**
+   - Esecuzione completa di `mvn clean install` con tutti i test di regressione attivi per verificare il comportamento d'insieme.
+   - Esecuzione di `mvn clean package` per generare i pacchetti finali deployabili (JAR/WAR/EAR) e verificare l'inclusione corretta di `log4j2.xml` e delle librerie di runtime nei pacchetti finali.
+   - *Gate Step 6:* Presentazione del report finale e verifica con lo sviluppatore.
 
 ---
 
