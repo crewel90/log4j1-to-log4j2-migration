@@ -34,6 +34,28 @@ Nella cartella `scripts/` sono forniti strumenti di automazione locale:
 
 ---
 
+## 🚀 Installazione Rapida per Colleghi (via npm)
+
+Questo repository è configurato come pacchetto Node/npm per consentire l'installazione automatica della Skill in qualsiasi ambiente di sviluppo:
+
+```bash
+# 1. Clona il repository o estrai l'archivio
+git clone <url-del-repository>
+cd migration_Log4J2
+
+# 2. Installa con npm (esegue automaticamente il postinstall della Skill)
+npm install
+```
+
+Lo script `postinstall` copierà automaticamente `SKILL.md` e tutti i file di `references/` nella directory globale delle skill di Gemini CLI (`~/.gemini/skills/log4j1-to-log4j2-migration/`), rendendo immediatamente disponibile la skill all'agente.
+
+Se desideri disinstallare la skill in un secondo momento:
+```bash
+npm run uninstall-skill
+```
+
+---
+
 ## 🤖 Skill Gemini CLI (`log4j1-to-log4j2-migration`)
 
 È inclusa e installabile la Skill globale per l'agente AI Gemini CLI situata in:

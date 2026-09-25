@@ -1,0 +1,21 @@
+{
+  "name": "log4j1-to-log4j2-migration-harness",
+  "version": "1.0.0",
+  "description": "Agent Harness and Playbook for migrating Java applications from Log4j 1.x to native Log4j 2.x with Gemini CLI",
+  "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/install-skill.js",
+    "uninstall-skill": "node scripts/uninstall-skill.js",
+    "test": "node --test test/installer.test.js"
+  },
+  "keywords": [
+    "log4j",
+    "log4j2",
+    "migration",
+    "gemini-cli",
+    "agent-skill",
+    "java",
+    "maven"
+  ],
+  "license": "Apache-2.0"
+}
