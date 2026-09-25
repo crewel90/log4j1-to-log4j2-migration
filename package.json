@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "node scripts/install-skill.js",
     "uninstall-skill": "node scripts/uninstall-skill.js",
+    "install-code-review": "gemini extensions install https://github.com/gemini-cli-extensions/code-review",
     "test": "node --test test/installer.test.js"
   },
   "keywords": [

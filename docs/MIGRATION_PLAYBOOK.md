@@ -36,6 +36,10 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
                    ↓
         [Revisione Sviluppatore]
                    ↓
+[Step 5.bis: Code Review Agentica (/code-review)] → [Fix rilievi + mvn clean install]
+                   ↓
+        [Revisione Sviluppatore]
+                   ↓
 [Step 6: Packaging & Verifica Finale] → [mvn clean install + mvn clean package]
                    ↓
 [Gate Integrazione Git: Pull Request (consigliata) OPPURE Merge Locale SOLO PREVIA APPROVAZIONE ESPLICITA]
@@ -215,6 +219,23 @@ Questo playbook definisce il processo formale per condurre la migrazione complet
    - Pausa e revisione del componente con lo sviluppatore.
    - *Commit Atomico:* Solo dopo approvazione formale:
      `git add **/*.java && git commit -m "feat(logging): migrate custom appenders to Log4j 2 @Plugin architecture"`
+
+---
+
+### STEP 5.bis: Code Review Agentica (`/code-review`)
+**Obiettivo:** Effettuare una revisione automatizzata e rigorosa dei diff e del codice sorgente sul branch di migrazione prima del packaging finale.
+1. **Prerequisito:** Estensione ufficiale Gemini CLI [`code-review`](https://github.com/gemini-cli-extensions/code-review) installata (`npm run install-code-review` o `gemini extensions install https://github.com/gemini-cli-extensions/code-review`).
+2. **Esecuzione della Code Review:**
+   Lanciare sul branch locale:
+   ```text
+   /code-review
+   ```
+   Fornendo come focus di review:
+   *"Revisione del refactoring da Log4j 1 a Log4j 2: verificare assenza totale di import legacy org.apache.log4j.*, corretto uso del logging parametrizzato con placeholder {}, corretta gestione di ThreadContext ed eccezioni Throwable."*
+3. **Valutazione & Risoluzione dei Rilievi:**
+   - **Rilievi Critici / Bug:** Risoluzione immediata da parte dell'agente o dello sviluppatore.
+   - **Riesecuzione Build:** Dopo qualsiasi correzione, lanciare sempre `mvn clean install` per verificare che la build resti verde.
+4. **Gate di Revisione:** Lo sviluppatore esamina l'esito della code review e convalida il superamento dello step.
 
 ---
 

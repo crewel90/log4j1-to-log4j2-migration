@@ -197,7 +197,12 @@ La skill opera secondo un principio rigoroso di **Human-in-the-loop**: ogni step
    - Identifica componenti che estendono `AppenderSkeleton` o `Layout` e li riscrive come plugin Log4j 2 con relative annotazioni `@Plugin`.
    - Esecuzione `mvn clean install` per validare il packaging dei plugin Log4j 2.
    - *Gate Step 5:* Presentazione del codice del plugin migrato, pausa per revisione/iterazione ed eventuale build correttiva.
-6. **Step 6 - Build, Packaging & Final Verification:**
+6. **Step 5.bis - Agentic Code Review Gate (`/code-review`):**
+   - Esecuzione della review automatizzata del branch con l'estensione ufficiale `gemini-cli-extensions/code-review`:
+     - Analisi dei diff sul branch locale (`/code-review`) focalizzata su: assenza di import legacy `org.apache.log4j.*`, correttezza della parametrizzazione stringhe, gestione `ThreadContext` ed eccezioni, conformità standard.
+   - Trattamento dei rilievi: correzione immediata dei rilievi critici/importanti, ri-esecuzione di `mvn clean install` e presentazione allo sviluppatore.
+   - *Gate Step 5.bis:* Approvazione esplicita della Code Review da parte dello sviluppatore prima di procedere al packaging finale.
+7. **Step 6 - Build, Packaging & Final Verification:**
    - Esecuzione completa di `mvn clean install` con tutti i test di regressione attivi per verificare il comportamento d'insieme.
    - Esecuzione di `mvn clean package` per generare i pacchetti finali deployabili (JAR/WAR/EAR) e verificare l'inclusione corretta di `log4j2.xml` e delle librerie di runtime nei pacchetti finali.
    - *Gate Step 6:* Presentazione del report finale e verifica con lo sviluppatore.

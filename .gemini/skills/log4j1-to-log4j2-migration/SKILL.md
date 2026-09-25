@@ -128,6 +128,26 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
 
 ---
 
+### STEP 5.bis: Agentic Code Review Gate (`/code-review`)
+1. **Verifica Estensione Code Review:**
+   - Assicurarsi che l'estensione `code-review` sia installata (`gemini extensions install https://github.com/gemini-cli-extensions/code-review` o `npm run install-code-review`).
+2. **Esecuzione Code Review sul Branch Locale:**
+   - Esegui (o invita lo sviluppatore a lanciare):
+     ```text
+     /code-review
+     ```
+   - Focus prioritario:
+     - Assoluta assenza di residui `org.apache.log4j.*`.
+     - Rispetto del logging parametrizzato (nessuna concatenazione inutile `+`).
+     - Corretto passaggio dell'eccezione come ultimo argomento in `LOGGER.error("...", ex)`.
+     - Corretto utilizzo di `ThreadContext` e rilascio delle risorse.
+3. **Risoluzione Rilievi & Re-Build:**
+   - Correggi chirurgicamente eventuali rilievi critici emersi dalla review.
+   - Riesegui sempre `mvn clean install` per verificare che la build resti verde.
+4. **Gate Step 5.bis (Pausa):** Presenta l'esito della code review e le eventuali correzioni allo sviluppatore. Procedi allo Step 6 solo dopo approvazione esplicita.
+
+---
+
 ### STEP 6: Build, Packaging & Final Verification
 1. **Esecuzione Test Completi:**
    - Esegui:

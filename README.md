@@ -53,6 +53,14 @@ Lo script `postinstall` copierà automaticamente i file nelle rispettive cartell
 * Gli Script di supporto in: `~/.gemini/scripts/`
 * Gli Hook di pre-commit in: `~/.gemini/hooks/`
 
+### 🔎 Estensione Consigliata: Code Review Agentica
+Prima del packaging finale (Step 5.bis), il workflow esegue una revisione agentica dei diff con l'estensione ufficiale [`code-review`](https://github.com/gemini-cli-extensions/code-review). Per installarla con un solo comando:
+```bash
+npm run install-code-review
+# oppure direttamente:
+gemini extensions install https://github.com/gemini-cli-extensions/code-review
+```
+
 Se desideri disinstallare la skill in un secondo momento:
 ```bash
 npm run uninstall-skill
