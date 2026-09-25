@@ -184,7 +184,24 @@ Per ciascuno dei 6 step:
 
 ---
 
-## 5. Criteri di Accettazione e Validazione
+## 5. Agent Harness e Tooling di Supporto (Sub-Skills)
+
+Per progetti particolarmente complessi, legacy o estesi (es. monoliti con centinaia di moduli), la skill principale funge da orchestratore (Agent Harness) e delega l'esecuzione materiale a tool e sub-skill specializzate per mantenere il context-window snello ed efficiente.
+
+### 5.1 Sub-Skills Specializzate
+La skill `log4j1-to-log4j2-migration` potrà invocare (o suggerire l'invocazione di) agenti/skill subordinate:
+- **`openrewrite-runner`:** Una sub-skill focalizzata esclusivamente sull'iniezione del `rewrite-maven-plugin` nel POM, l'esecuzione delle ricette `org.openrewrite.java.logging.log4j.Log4j1ToLog4j2` e la successiva rimozione del plugin, ideale per refactoring massivi.
+- **`log4j-custom-plugin-builder`:** Una sub-skill dedicata all'analisi sintattica (AST) di vecchi `AppenderSkeleton` e alla riscrittura in componenti nativi `@Plugin` Log4j 2.
+
+### 5.2 Script e Hook Custom
+L'Harness includerà script eseguibili (es. Bash/PowerShell) distribuiti insieme alla documentazione, che l'agente può lanciare tramite `run_shell_command`:
+- **Scansione AST Veloce:** Script basato su `grep` o `ripgrep` avanzato per censire istantaneamente tutte le classi che importano `org.apache.log4j` (invece di far leggere i file all'agente).
+- **XML Converter Wrapper:** Script helper che scarica al volo il bridge `log4j-1.2-api.jar` ed esegue l'utility nativa `org.apache.log4j.config.Log4j1ConfigurationConverter` per convertire automaticamente i file `log4j.properties` complessi.
+- **Git Hooks (Pre-commit):** Fornitura di un hook opzionale che blocca i commit se rileva nuovi inserimenti di import `org.apache.log4j.*`, garantendo che durante la migrazione non vengano introdotte regressioni dal team di sviluppo.
+
+---
+
+## 6. Criteri di Accettazione e Validazione
 - [ ] Documentazione nel workspace creata e consultabile (`README.md`, `MIGRATION_PLAYBOOK.md`, `references/*.md`).
 - [ ] Skill Gemini CLI creata in `~/.gemini/skills/log4j1-to-log4j2-migration/` con `SKILL.md` valido e file di reference a supporto.
 - [ ] Verifica formale che le descrizioni della Skill rispettino gli standard di discovery di Gemini CLI.
