@@ -29,7 +29,7 @@ Guida procedurale per agenti AI per condurre la migrazione nativa e completa di 
    - Mappa tutti i `pom.xml`, le relazioni parent-child e la sezione `<dependencyManagement>`.
    - *Delega consigliata per progetti estesi:* Invia `@codebase_investigator` per scansionare l'albero e farti restituire un report sintetico di topologia.
 2. **Censimento Risorse:**
-   - Esegui lo scanner rapido fornito nel bundle della skill (`scripts/scan-legacy-log4j.ps1` o `scripts/scan-legacy-log4j.sh` presenti nelle risorse della skill).
+   - Esegui lo scanner rapido fornito nel bundle dell'harness (`.gemini/scripts/scan-legacy-log4j.ps1` o `.gemini/scripts/scan-legacy-log4j.sh`, oppure da `~/.gemini/scripts/`).
    - Elenca i file di configurazione (`log4j.properties`, `log4j.xml`).
    - Rileva l'uso di componenti custom (`AppenderSkeleton`, `Layout`, `Filter`).
 3. **Gate Step 1 (Pausa):** Presenta allo sviluppatore:

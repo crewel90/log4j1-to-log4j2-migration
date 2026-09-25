@@ -25,12 +25,12 @@ Il dossier tecnico si articola nei seguenti documenti:
 
 ---
 
-## 🛠️ Tooling, Script & Hooks nel Bundle della Skill
+## 🛠️ Tooling, Script & Hooks nella Cartella `.gemini/`
 
-Tutti gli strumenti operativi dell'Agent Harness risiedono direttamente all'interno della Skill (`.gemini/skills/log4j1-to-log4j2-migration/`):
-* **`scripts/scan-legacy-log4j.ps1` / `.sh`**: Scansione istantanea della codebase per censire POM, file di configurazione, classi legacy e appender custom.
-* **`scripts/convert-log4j1-config.sh`**: Wrapper per l'utility ufficiale di conversione Apache.
-* **`hooks/pre-commit`**: Git hook opzionale per impedire il reinserimento di import `org.apache.log4j.*`.
+Gli strumenti dell'Agent Harness risiedono direttamente nella directory di configurazione `.gemini/`:
+* **`.gemini/scripts/scan-legacy-log4j.ps1` / `.sh`**: Scansione istantanea della codebase per censire POM, file di configurazione, classi legacy e appender custom.
+* **`.gemini/scripts/convert-log4j1-config.sh`**: Wrapper per l'utility ufficiale di conversione Apache.
+* **`.gemini/hooks/pre-commit`**: Git hook per bloccare l'introduzione di import `org.apache.log4j.*`.
 
 ---
 
@@ -43,11 +43,14 @@ Questo repository è configurato come pacchetto Node/npm per consentire l'instal
 git clone <url-del-repository>
 cd migration_Log4J2
 
-# 2. Installa con npm (esegue automaticamente il postinstall della Skill)
+# 2. Installa con npm (esegue automaticamente il postinstall)
 npm install
 ```
 
-Lo script `postinstall` copierà automaticamente `SKILL.md`, la directory `references/`, `scripts/` e `hooks/` nella directory globale delle skill di Gemini CLI (`~/.gemini/skills/log4j1-to-log4j2-migration/`), rendendo immediatamente disponibile la skill all'agente in qualsiasi progetto Java sul PC del collega.
+Lo script `postinstall` copierà automaticamente i file nelle rispettive cartelle globali di Gemini CLI:
+* La Skill e i suoi riferimenti in: `~/.gemini/skills/log4j1-to-log4j2-migration/`
+* Gli Script di supporto in: `~/.gemini/scripts/`
+* Gli Hook di pre-commit in: `~/.gemini/hooks/`
 
 Se desideri disinstallare la skill in un secondo momento:
 ```bash
@@ -56,17 +59,18 @@ npm run uninstall-skill
 
 ---
 
-## 🤖 Struttura della Skill Gemini CLI (`log4j1-to-log4j2-migration`)
+## 🤖 Struttura dell'Agent Harness (`.gemini/`)
 
-La Skill è completamente autoconsistente:
 ```text
-~/.gemini/skills/log4j1-to-log4j2-migration/
-├── SKILL.md
-├── references/
-│   ├── api-mappings.md
-│   ├── config-converter.md
-│   ├── custom-plugins.md
-│   └── pitfalls.md
+.gemini/
+├── skills/
+│   └── log4j1-to-log4j2-migration/
+│       ├── SKILL.md
+│       └── references/
+│           ├── api-mappings.md
+│           ├── config-converter.md
+│           ├── custom-plugins.md
+│           └── pitfalls.md
 ├── scripts/
 │   ├── scan-legacy-log4j.ps1
 │   ├── scan-legacy-log4j.sh
