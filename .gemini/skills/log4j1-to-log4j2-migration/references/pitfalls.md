@@ -25,3 +25,23 @@ Checklist rapida per l'agente per prevenire errori frequenti durante la migrazio
   - `WEB-INF/classes/log4j2.xml` DEVE essere presente.
   - `WEB-INF/lib/log4j-api-*.jar` e `log4j-core-*.jar` DEVONO essere presenti.
   - NESSUN `log4j-1.2.*.jar` o `reload4j-*.jar` deve essere presente.
+
+## 6. Applicazioni su JBoss AS 7.1 / JBoss EAP 6.x (Java 8)
+- **Problema:** JBoss inietta i propri moduli Log4j 1 e ignora `log4j2.xml`.
+- **Risoluzione Obbligatoria:** Creare `WEB-INF/jboss-deployment-structure.xml` con:
+  ```xml
+  <jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+      <deployment>
+          <exclude-subsystems><subsystem name="logging" /></exclude-subsystems>
+          <exclusions>
+              <module name="org.apache.log4j" />
+              <module name="org.slf4j" />
+              <module name="org.slf4j.impl" />
+              <module name="org.apache.commons.logging" />
+          </exclusions>
+      </deployment>
+  </jboss-deployment-structure>
+  ```
+- **Prevenzione Memory Leak:** Aggiungere `log4j-web` (scope runtime) nel POM del WAR.
+- **Path Log JBoss:** Usare `${sys:jboss.server.log.dir:-logs}/logs` in `log4j2.xml`.
+- **Java 8:** Usare versioni Log4j 2 stabili (`2.24.x`) che supportano pienamente Java 8.
