@@ -184,20 +184,33 @@ Per ciascuno dei 6 step:
 
 ---
 
-## 5. Agent Harness e Tooling di Supporto (Sub-Skills)
+## 5. Agent Harness e Tooling di Supporto (Sub-Agents, Sub-Skills e Script)
 
-Per progetti particolarmente complessi, legacy o estesi (es. monoliti con centinaia di moduli), la skill principale funge da orchestratore (Agent Harness) e delega l'esecuzione materiale a tool e sub-skill specializzate per mantenere il context-window snello ed efficiente.
+Per progetti complessi o di grandi dimensioni (es. multi-modulo enterprise con decine di POM e centinaia di classi Java), la skill principale funge da **Orchestratore (Agent Harness)** e delega compiti gravosi o ripetitivi a **Sub-Agent** (`invoke_agent` / `@generalist`, `@codebase_investigator`) e **Sub-Skill** specializzate. In questo modo la sessione principale rimane rapida, snella ed evita l'esaurimento della context-window.
 
-### 5.1 Sub-Skills Specializzate
-La skill `log4j1-to-log4j2-migration` potrà invocare (o suggerire l'invocazione di) agenti/skill subordinate:
-- **`openrewrite-runner`:** Una sub-skill focalizzata esclusivamente sull'iniezione del `rewrite-maven-plugin` nel POM, l'esecuzione delle ricette `org.openrewrite.java.logging.log4j.Log4j1ToLog4j2` e la successiva rimozione del plugin, ideale per refactoring massivi.
-- **`log4j-custom-plugin-builder`:** Una sub-skill dedicata all'analisi sintattica (AST) di vecchi `AppenderSkeleton` e alla riscrittura in componenti nativi `@Plugin` Log4j 2.
+### 5.1 Strategia di Delega a Sub-Agent (Context Window Optimization)
+L'agente principale mantiene il controllo del workflow e dei gate di approvazione con lo sviluppatore, ma delega compiti ad alto consumo di token:
+1. **Audit & Discovery Sub-Agent (`codebase_investigator`):**
+   - Invocato per esplorare l'intero albero delle directory, leggere tutti i `pom.xml`, mappare la gerarchia parent/submodules e individuare tutte le occorrenze di `org.apache.log4j.*`.
+   - *Output compresso:* Restituisce all'agente principale solo un report strutturato (topologia moduli, lista file di config, conteggio classi legacy) senza intasare la cronologia con decine di letture di file.
+2. **Batch Code Refactoring Sub-Agent (`generalist`):**
+   - Invocato su singoli sottomoduli o gruppi di classi per applicare il refactoring Java (import, factory methods, parametrizzazione).
+   - Esegue il refactoring isolato, lancia `mvn test-compile` nel modulo di competenza e restituisce all'orchestratore una sintesi delle classi modificate e lo status della compilazione.
+3. **Custom Plugin Migration Sub-Agent (`generalist`):**
+   - Invocato per analizzare singoli componenti legacy ad alta complessità (es. estensioni custom di `AppenderSkeleton`) e produrre la riscrittura nativa con annotazioni `@Plugin` e `PluginBuilderFactory`.
+4. **Diagnostic Sub-Agent (`generalist`):**
+   - Invocato in caso di fallimento della build (`mvn clean install` con traceback prolungati). Analizza i log di errore Maven, isola la causa radice (es. conflitto di dipendenze, classi mancanti) e propone all'orchestratore esclusivamente la correzione chirurgica necessaria.
 
-### 5.2 Script e Hook Custom
-L'Harness includerà script eseguibili (es. Bash/PowerShell) distribuiti insieme alla documentazione, che l'agente può lanciare tramite `run_shell_command`:
-- **Scansione AST Veloce:** Script basato su `grep` o `ripgrep` avanzato per censire istantaneamente tutte le classi che importano `org.apache.log4j` (invece di far leggere i file all'agente).
-- **XML Converter Wrapper:** Script helper che scarica al volo il bridge `log4j-1.2-api.jar` ed esegue l'utility nativa `org.apache.log4j.config.Log4j1ConfigurationConverter` per convertire automaticamente i file `log4j.properties` complessi.
-- **Git Hooks (Pre-commit):** Fornitura di un hook opzionale che blocca i commit se rileva nuovi inserimenti di import `org.apache.log4j.*`, garantendo che durante la migrazione non vengano introdotte regressioni dal team di sviluppo.
+### 5.2 Sub-Skills Specializzate
+La skill principale può attivare o consigliare:
+- **`openrewrite-runner`:** Sub-skill focalizzata esclusivamente sull'iniezione mirata del plugin `rewrite-maven-plugin` nel POM, esecuzione batch delle ricette OpenRewrite e successiva pulizia del POM.
+- **`log4j-custom-plugin-builder`:** Sub-skill contenente i pattern specifici e i template per convertire gli appender da Log4j 1 a Log4j 2.
+
+### 5.3 Script e Hook Custom
+L'Harness include script eseguibili (Bash/PowerShell) per l'automazione locale:
+- **Scansione AST Veloce:** Script basato su tool di ricerca efficienti per censire istantaneamente gli import legacy.
+- **XML Converter Wrapper:** Script helper per invocare il convertitore ufficiale di Apache Log4j per file di configurazione complessi.
+- **Git Hooks (Pre-commit):** Hook opzionale che blocca l'inserimento di nuovi import `org.apache.log4j.*` durante la fase di migrazione.
 
 ---
 
